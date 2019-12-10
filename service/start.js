@@ -16,12 +16,18 @@
             switch (data.type) {
                 case 'cts_login':
                     Login.login(data, (msg) => {
-                        socket.join('hall')
+                        if (msg.err == '') {
+                            socket.join('hall')
+                        }
                         socket.emit('onMessage', msg)
                     })
                     break
                 case 'cts_sync_hall':
                     Hall.syncHall(data, (msg) => {
+                        if (msg.gameId) {
+                            socket.leave('hall')
+                            socket.join(msg.gameId)
+                        }
                         socket.emit('onMessage', msg)
                     })
                     break
@@ -32,10 +38,35 @@
                     break
                 case 'cts_create_game':
                     Game.createGame(data, (msg) => {
-                        io.in('hall').emit('onMessage', msg)
+                        if (msg.err == '') {
+                            io.in('hall').emit('onMessage', msg)
+                        } else {
+                            socket.emit('onMessage', msg)
+                        }
                     })
                     break
                 case 'cts_enter_game':
+                    Game.enterGame(data, (msg) => {
+                        if (msg.err == '') {
+                            io.in('hall').emit('onMessage', msg)
+                            io.in(msg.gameId).emit('onMessage', msg)
+                            socket.leave('hall')
+                            socket.join(msg.gameId)
+                        } else {
+                            socket.emit('onMessage', msg)
+                        }
+                    })
+                    break
+                case 'cts_leave_game':
+                    Game.leaveGame(data, (msg) => {
+                        if (msg.err == '') {
+                            io.in(msg.gameId).emit('onMessage', msg)
+                            socket.leave(msg.gameId)
+                            socket.join('hall')
+                        } else {
+                            socket.emit('onMessage', msg)
+                        }
+                    })
                     break
                 default:
                     console.error(`${data.type} is not exist`)

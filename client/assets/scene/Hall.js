@@ -28,12 +28,24 @@ cc.Class({
 
         switch (msg.type) {
             case 'stc_sync_hall':
+                if (msg.gameId) {
+                    cc.director.loadScene('Game')
+                    return
+                }
                 this.games = msg.games
                 this.showGames()
                 break
             case 'stc_create_game':
                 this.games = msg.games
                 this.showGames(msg)
+                break
+            case 'stc_enter_game':
+                if (msg.userId == User.userId) {
+                    cc.director.loadScene('Game')
+                } else {
+                    this.games = msg.games
+                    this.showGames(msg)
+                }
                 break
             default:
                 console.error(`${msg.type} is not exist`)
@@ -49,7 +61,7 @@ cc.Class({
             gameItem.PathChild('gameId', cc.Label).string = game.id
             gameItem.PathChild('ownerName', cc.Label).string = `房主:${game.ownerName}`
             gameItem.PathChild('ownerId', cc.Label).string = `ID:${game.ownerId}`
-            gameItem.PathChild('count', cc.Label).string = `${game.currCount}/${game.maxCount}`
+            gameItem.PathChild('count', cc.Label).string = `${game.users.length}/${game.maxCount}`
             this.content.addChild(gameItem)
         }
     },
@@ -58,8 +70,7 @@ cc.Class({
         // 创建房间
         SocketCustom.emit('message', {
             type: 'cts_create_game',
-            userId: User.userId,
-            userName: User.name,
+            user: User,
         })
     },
 
@@ -68,7 +79,7 @@ cc.Class({
         // 进入房间
         SocketCustom.emit('message', {
             type: 'cts_enter_game',
-            userId: User.userId,
+            user: User,
             gameId: gameId,
         })
     },
